@@ -78,7 +78,10 @@ def logical_drive_by_name(device_name):
 
         salt '*' controller.logical_drive_by_name <device name>
     """
-    return controller.get_logical_drive(device_name).get_info()
+    try:
+        return controller.get_logical_drive(device_name).get_info()
+    except:
+        return "Logical drive {0} not present".format(device_name)
 
 @depends('controller', fallback_function=_fallback)
 def logical_drive_delete(controller_id, logical_drive_id):
@@ -92,10 +95,14 @@ def logical_drive_delete(controller_id, logical_drive_id):
 
         salt '*' controller.logical_drive_delete <controller id> <logical drive id>
     """
-    return controller.LogicalDrive(controller_id, logical_drive_id).delete()
+    try:
+        return controller.LogicalDrive(controller_id, logical_drive_id).delete()
+    except:
+        return "Failed to delete logical drive {0} on controller {1}".format(
+               logical_drive_id, controller_id)
 
 @depends('controller', fallback_function=_fallback)
-def logical_drive_create(controller_id, physical_drive):
+def logical_drive_create(controller_id, physical_drive_id):
     """
     Create a logical drive.
     Returns the information for the logical drive that just got created.
@@ -106,8 +113,12 @@ def logical_drive_create(controller_id, physical_drive):
 
         salt '*' controller.logical_drive_create <controller id> <physical drive>
     """
-    ctl = controller.Controller(controller_id)
-    return ctl.create_logical_drive(physical_drive)
+    try:
+        ctl = controller.Controller(controller_id)
+        return ctl.create_logical_drive(physical_drive_id)
+    except:
+        return ("Failed to create a logical drive with physical drive {0} "
+                "on controller {1}".format(physical_drive_id, controller_id))
 
 @depends('controller', fallback_function=_fallback)
 def physical_drive(controller_id, physical_drive_id=None):
@@ -124,11 +135,20 @@ def physical_drive(controller_id, physical_drive_id=None):
         salt '*' controller.physical_drive <controller id> <physical drive id>
     """
     if physical_drive_id is None:
-        ctl = controller.Controller(controller_id)
-        return [p.get_info() for p in ctl.get_physical_drives()]
+        try:
+            ctl = controller.Controller(controller_id)
+            return [p.get_info() for p in ctl.get_physical_drives()]
+        except:
+            return ("Failed to get information for physical drives on "
+                    "controller {0}".format(controller_id))
     else:
-        phy_drv = controller.get_physical_drive(controller_id, physical_drive_id)
-        return phy_drv.get_info()
+        try:
+            phy_drv = controller.get_physical_drive(controller_id,
+                                                    physical_drive_id)
+            return phy_drv.get_info()
+        except:
+            return "Physical drive {0} on controller {1} not present".format(
+                    physical_drive_id, controller_id)
 
 @depends('controller', fallback_function=_fallback)
 def info(controller_id=None):
@@ -145,6 +165,13 @@ def info(controller_id=None):
         salt '*' controller.info <controller id>
     """
     if controller_id is None:
-        return [c.get_info() for c in controller.get_controllers()]
+        try:
+            return [c.get_info() for c in controller.get_controllers()]
+        except:
+            return "Failed to get controllers information"
     else:
-        return controller.Controller(controller_id).get_info()
+        try:
+            return controller.Controller(controller_id).get_info()
+        except:
+            return "Failed to get information for controller {0}".format(
+                   controller_id)
