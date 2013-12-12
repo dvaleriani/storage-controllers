@@ -60,7 +60,7 @@ def logical_drive(controller_id, logical_drive_id=None):
         salt '*' controller.logical_drive <controller id>
         salt '*' controller.logical_drive <controller id> <logical drive id>
     """
-    if logical_drive is None:
+    if logical_drive_id is None:
         ctl = controller.Controller(controller_id)
         return [l.get_info() for l in ctl.get_logical_drives()]
     else:
@@ -123,7 +123,7 @@ def physical_drive(controller_id, physical_drive_id=None):
         salt '*' controller.physical_drive <controller id>
         salt '*' controller.physical_drive <controller id> <physical drive id>
     """
-    if physical_drive is None:
+    if physical_drive_id is None:
         ctl = controller.Controller(controller_id)
         return [p.get_info() for p in ctl.get_physical_drives()]
     else:
