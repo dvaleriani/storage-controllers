@@ -238,7 +238,7 @@ class Controller():
         res = run('omconfig', 'storage controller controller={0} '
                   'action=createvdisk pdisk={1} raid=r0 size=max '
                   'stripesize=64kb diskcachepolicy=disabled readpolicy=ara '
-                  'writepolicy=wb'''.format(self.controller_id, physical_drive))
+                  'writepolicy=wb'.format(self.controller_id, physical_drive))
         _check_exit_code(res, "Failed to create a logical drive on controller "
                          "{0} with physical drives {1}".format(
                          self.controller_id, physical_drive))
@@ -252,6 +252,18 @@ class Controller():
         else:
             new_vdisk_id = new_vdisk_ids.pop()
         return LogicalDrive(self.controller_id, new_vdisk_id).get_info()
+
+    def clear_foreign_config(self):
+        """
+        Wipe out the foreign config.
+
+        :return: A boolean with the result.
+        """
+        res = run('omconfig', 'storage controller controller={0} '
+                  'action=clearforeignconfig'.format(self.controller_id))
+        _check_exit_code(res, "Failed to clear the foreign config on"
+                              "controller {0}".format(self.controller_id))
+        return True
 
 
 class LogicalDrive():
