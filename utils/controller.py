@@ -15,6 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Note: it only returns the first physical drive of a logical drive
+
 '''
 Module for managing storage controllers on POSIX-like systems.
 '''
@@ -61,11 +63,22 @@ def logical_drive(controller_id, logical_drive_id=None):
         salt '*' controller.logical_drive <controller id> <logical drive id>
     """
     if logical_drive_id is None:
-        ctl = controller.Controller(controller_id)
-        return [l.get_info() for l in ctl.get_logical_drives()]
+        try:
+            ctl = controller.Controller(controller_id)
+            info = [l.get_info() for l in ctl.get_logical_drives()]
+            return info
+        except:
+            return {"controller": controller_id,
+                    "status": "Failed to retrieve information"}
     else:
-        ld = controller.LogicalDrive(controller_id, logical_drive_id)
-        return ld.get_info()
+        try:
+            ld = controller.LogicalDrive(controller_id, logical_drive_id)
+            info = ld.get_info()
+            return info
+        except:
+            return {"controller": controller_id,
+                    "logical_drive": logical_drive_id,
+                    "status": "Failed to retrieve information"}
 
 @depends('controller', fallback_function=_fallback)
 def logical_drive_by_name(device_name):
@@ -79,9 +92,11 @@ def logical_drive_by_name(device_name):
         salt '*' controller.logical_drive_by_name <device name>
     """
     try:
-        return controller.get_logical_drive(device_name).get_info()
+        info = controller.get_logical_drive(device_name).get_info()
+        return info
     except:
-        return "Logical drive {0} not present".format(device_name)
+        return {"logical_drive": device_name,
+                "status": "Failed to retrieve information"}
 
 @depends('controller', fallback_function=_fallback)
 def logical_drive_delete(controller_id, logical_drive_id):
@@ -96,10 +111,14 @@ def logical_drive_delete(controller_id, logical_drive_id):
         salt '*' controller.logical_drive_delete <controller id> <logical drive id>
     """
     try:
-        return controller.LogicalDrive(controller_id, logical_drive_id).delete()
+        ld = controller.LogicalDrive(controller_id, logical_drive_id)
+        info = ld.get_info()
+        x = ld.delete()
+        return dict(x)
     except:
-        return "Failed to delete logical drive {0} on controller {1}".format(
-               logical_drive_id, controller_id)
+        return {"controller": controller_id,
+                "logical_drive": logical_drive_id,
+                "status": "Failed to delete"}
 
 @depends('controller', fallback_function=_fallback)
 def logical_drive_create(controller_id, physical_drive_id):
@@ -115,10 +134,12 @@ def logical_drive_create(controller_id, physical_drive_id):
     """
     try:
         ctl = controller.Controller(controller_id)
-        return ctl.create_logical_drive(physical_drive_id)
+        info = ctl.create_logical_drive(physical_drive_id)
+        return info
     except:
-        return ("Failed to create a logical drive with physical drive {0} "
-                "on controller {1}".format(physical_drive_id, controller_id))
+        return {"controller": controller_id,
+                "physical_drive": physical_drive_id,
+                "status": "Failed to create a logical drive"}
 
 @depends('controller', fallback_function=_fallback)
 def physical_drive(controller_id, physical_drive_id=None):
@@ -139,16 +160,17 @@ def physical_drive(controller_id, physical_drive_id=None):
             ctl = controller.Controller(controller_id)
             return [p.get_info() for p in ctl.get_physical_drives()]
         except:
-            return ("Failed to get information for physical drives on "
-                    "controller {0}".format(controller_id))
+            return {"controller": controller_id,
+                    "status": "Failed to get information for physical drives"}
     else:
         try:
             phy_drv = controller.get_physical_drive(controller_id,
                                                     physical_drive_id)
             return phy_drv.get_info()
         except:
-            return "Physical drive {0} on controller {1} not present".format(
-                    physical_drive_id, controller_id)
+            return {"controller": controller_id,
+                    "physical_drive": physical_drive_id,
+                    "status": "Not present"}
 
 @depends('controller', fallback_function=_fallback)
 def info(controller_id=None):
@@ -168,10 +190,65 @@ def info(controller_id=None):
         try:
             return [c.get_info() for c in controller.get_controllers()]
         except:
-            return "Failed to get controllers information"
+            return {"status": "Failed to get controllers information"}
     else:
         try:
             return controller.Controller(controller_id).get_info()
         except:
-            return "Failed to get information for controller {0}".format(
-                   controller_id)
+            return {"controller": controller_id,
+                    "status": "Failed to get controller information"}
+
+@depends('controller', fallback_function=_fallback)
+def blink_led(controller_id, physical_drive_id):
+    """
+    Switch on the indicator led for the specified port.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt '*' controller.blink_led <controller id> <physical_drive_id>
+    """
+    try:
+        phy_drv = controller.get_physical_drive(controller_id, physical_drive_id)
+        return phy_drv.blink_led()
+    except:
+        return {"controller": controller_id,
+                "physical_drive": physical_drive_id,
+                "status": "Failed to blink the led"}
+
+@depends('controller', fallback_function=_fallback)
+def unblink_led(controller_id, physical_drive_id):
+    """
+    Switch off the indicator led for the specified port.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt '*' controller.unblink_led <controller id> <physical_drive_id>
+    """
+    try:
+        phy_drv = controller.get_physical_drive(controller_id, physical_drive_id)
+        return phy_drv.unblink_led()
+    except:
+        return {"controller": controller_id,
+                "physical_drive": physical_drive_id,
+                "status": "Failed to unblink the led"}
+
+@depends('controller', fallback_function=_fallback)
+def clear_foreign_config(controller_id):
+    """
+    Clear the foreign config.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt '*' controller.clear_foreign_config <controller id>
+    """
+    try:
+        return controller.Controller(controller_id).clear_foreign_config()
+    except:
+        return {"controller": controller_id,
+                "status": "Failed to clear the foreign config"}
